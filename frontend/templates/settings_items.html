@@ -1,0 +1,167 @@
+{% extends "settings.html" %}
+
+{% block settings_content %}
+<div class="space-y-6">
+    <!-- Add Item Button -->
+    <button onclick="openNewItemSettings()" class="w-full bg-[#c36322] text-white py-3 rounded-lg hover:bg-[#a8521f] transition-colors font-medium mb-4">
+        <i class="fas fa-plus mr-2"></i>Nieuw Item Toevoegen
+    </button>
+
+    <!-- Items List -->
+    <div id="items-list" class="space-y-2">
+        {% for item in items %}
+        <div class="item-row bg-white rounded-lg p-4 shadow-sm flex items-center justify-between" data-id="{{ item.id }}">
+            <div class="flex-1">
+                <h4 class="font-medium text-gray-800">{{ item.item_name }}</h4>
+                <p class="text-sm text-gray-500">{{ item.category_name or 'Geen categorie' }} • Hoeveelheid: {{ item.quantity }}</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="editItem({{ item|tojson }})" class="text-[#c36322] hover:text-[#a8521f] transition-colors">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="confirmDeleteItem({{ item.id }})" class="text-red-500 hover:text-red-600 transition-colors">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not items %}
+    <div class="text-center py-12">
+        <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
+        <p class="text-gray-500 text-lg">Geen items gevonden</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- New/Edit Item Modal -->
+<div id="item-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-800">Nieuw Item</h3>
+            <button onclick="closeItemModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <input type="hidden" id="edit-item-id">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Itemnaam *</label>
+                <input type="text" id="edit-item-name" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c36322] focus:border-transparent outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
+                <select id="edit-item-category" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c36322] focus:border-transparent outline-none">
+                    <option value="">-- Selecteer categorie --</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Hoeveelheid</label>
+                <input type="number" id="edit-item-quantity" min="1" value="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c36322] focus:border-transparent outline-none">
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end space-x-3">
+            <button onclick="closeItemModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                Annuleren
+            </button>
+            <button onclick="saveItem()" class="px-6 py-2 bg-[#c36322] text-white rounded-lg hover:bg-[#a8521f] transition-colors font-medium">
+                Opslaan
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let editingItem = null;
+
+function openNewItemSettings() {
+    document.getElementById('modal-title').textContent = 'Nieuw Item';
+    document.getElementById('edit-item-id').value = '';
+    document.getElementById('edit-item-name').value = '';
+    document.getElementById('edit-item-category').value = '';
+    document.getElementById('edit-item-quantity').value = 1;
+    document.getElementById('item-modal').classList.remove('hidden');
+    editingItem = null;
+}
+
+function editItem(item) {
+    document.getElementById('modal-title').textContent = 'Item Bewerken';
+    document.getElementById('edit-item-id').value = item.id;
+    document.getElementById('edit-item-name').value = item.item_name;
+    document.getElementById('edit-item-category').value = item.category_id || '';
+    document.getElementById('edit-item-quantity').value = item.quantity;
+    document.getElementById('item-modal').classList.remove('hidden');
+    editingItem = item;
+}
+
+function closeItemModal() {
+    document.getElementById('item-modal').classList.add('hidden');
+    editingItem = null;
+}
+
+async function saveItem() {
+    const id = document.getElementById('edit-item-id').value;
+    const name = document.getElementById('edit-item-name').value.trim();
+    const categoryId = document.getElementById('edit-item-category').value;
+    const quantity = parseInt(document.getElementById('edit-item-quantity').value);
+    
+    if (!name) {
+        alert('Voer een itemnaam in');
+        return;
+    }
+    
+    try {
+        let url, method;
+        if (editingItem) {
+            url = `/api/items/${id}`;
+            method = 'PUT';
+        } else {
+            url = '/api/items';
+            method = 'POST';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                item_name: name,
+                category_id: categoryId || null,
+                quantity: quantity
+            })
+        });
+        
+        if (!response.ok) throw new Error('Failed to save item');
+        
+        closeItemModal();
+        location.reload();
+    } catch (error) {
+        console.error('Error saving item:', error);
+        alert('Fout bij opslaan item');
+    }
+}
+
+async function confirmDeleteItem(itemId) {
+    if (!confirm('Weet u zeker dat u dit item wilt verwijderen?')) return;
+    
+    try {
+        const response = await fetch(`/api/items/${itemId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete item');
+        
+        location.reload();
+    } catch (error) {
+        console.error('Error deleting item:', error);
+        alert('Fout bij verwijderen item');
+    }
+}
+</script>
+{% endblock %}

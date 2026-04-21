@@ -1,0 +1,17 @@
+# Ignore files that don't need to be in the container
+.data
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv
+venv
+.env
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+README.md
+niftyshopping_prd.md

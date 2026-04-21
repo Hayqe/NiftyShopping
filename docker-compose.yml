@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  niftyshopping:
+    build: .
+    container_name: niftyshopping_app
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistent storage for SQLite database
+      - ./data:/app/data
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+
+volumes:
+  niftyshopping_data:

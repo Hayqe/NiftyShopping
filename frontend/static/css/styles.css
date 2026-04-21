@@ -1,0 +1,229 @@
+/* Custom styles for NiftyGroceries */
+
+/* Swipe functionality */
+.item-card {
+    position: relative;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    user-select: none;
+    touch-action: pan-y;
+}
+
+.item-content {
+    padding: 1rem;
+    transition: transform 0.2s ease-out;
+}
+
+.item-actions-right,
+.item-actions-left {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    font-weight: 500;
+}
+
+.item-actions-right {
+    right: 0;
+    transform: translateX(100%);
+    transition: transform 0.2s ease-out;
+}
+
+.item-actions-left {
+    left: 0;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+}
+
+/* Active swipe state */
+.item-card.swipe-right .item-content {
+    transform: translateX(-100%);
+}
+
+.item-card.swipe-right .item-actions-right {
+    transform: translateX(0);
+}
+
+.item-card.swipe-left .item-content {
+    transform: translateX(100%);
+}
+
+.item-card.swipe-left .item-actions-left {
+    transform: translateX(0);
+}
+
+/* Complete items have different action */
+.item-card.complete .item-actions-right {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+/* Category grouping */
+.category-header {
+    background: #f3f4f6;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #4b5563;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Smooth transitions */
+* {
+    transition-property: transform, opacity, background-color;
+    transition-duration: 200ms;
+    transition-timing-function: ease-out;
+}
+
+/* Focus states */
+:focus-visible {
+    outline: 2px solid #c36322;
+    outline-offset: 2px;
+}
+
+/* Button states */
+.btn-primary {
+    background-color: #c36322;
+    color: white;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background-color: #a8521f;
+}
+
+/* Drag and drop for categories */
+.draggable-item {
+    cursor: grab;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0.5rem;
+}
+
+.draggable-item:active {
+    cursor: grabbing;
+}
+
+/* Autocomplete dropdown */
+#autocomplete-dropdown {
+    max-width: 100%;
+}
+
+.autocomplete-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.autocomplete-item:hover {
+    background-color: #f3f4f6;
+}
+
+.autocomplete-item.active {
+    background-color: #fef3c7;
+}
+
+/* Quantity controls in autocomplete */
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.quantity-btn {
+    width: 2rem;
+    height: 2rem;
+    background-color: #c36322;
+    color: white;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.quantity-btn:hover {
+    background-color: #a8521f;
+}
+
+.quantity-value {
+    min-width: 2rem;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Success/Error messages */
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.alert-success {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.alert-error {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .item-actions-right span,
+    .item-actions-left span {
+        display: none;
+    }
+    
+    .item-actions-right,
+    .item-actions-left {
+        padding: 0 0.75rem;
+    }
+}
+
+/* Swipe threshold indicators */
+.swipe-indicator-right {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to left, rgba(0, 0, 0, 0), #16a34a);
+    opacity: 0;
+}
+
+.swipe-indicator-left {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0), #dc2626);
+    opacity: 0;
+}
+
+.item-card.swipe-right .swipe-indicator-right {
+    opacity: 1;
+}
+
+.item-card.swipe-left .swipe-indicator-left {
+    opacity: 1;
+}

@@ -1,0 +1,36 @@
+{% extends "settings.html" %}
+
+{% block settings_content %}
+<div class="space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Database</h2>
+        <div class="space-y-3">
+            <button onclick="backupDatabase()" class="w-full flex items-center justify-center space-x-2 bg-[#c36322] text-white py-3 rounded-lg hover:bg-[#a8521f] transition-colors">
+                <i class="fas fa-save"></i>
+                <span>Database Back-up</span>
+            </button>
+            <button onclick="resetDatabase()" class="w-full flex items-center justify-center space-x-2 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Database Resetten</span>
+            </button>
+        </div>
+        <p class="text-sm text-gray-500 mt-4 text-center">
+            De database wordt automatisch beheerd door Docker met persistente opslag.
+        </p>
+    </div>
+</div>
+
+<script>
+async function backupDatabase() {
+    if (!confirm('Wilt u de database back-uppen?')) return;
+    // This would be implemented with backend API
+    alert('Database back-up functionaliteit nog niet geïmplementeerd');
+}
+
+async function resetDatabase() {
+    if (!confirm('WAARSCHUWING: Dit verwijdert ALLE data! Wilt u doorgaan?')) return;
+    // This would be implemented with backend API
+    alert('Database reset functionaliteit nog niet geïmplementeerd');
+}
+</script>
+{% endblock %}

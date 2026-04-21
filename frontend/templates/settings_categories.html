@@ -1,0 +1,233 @@
+{% extends "settings.html" %}
+
+{% block settings_content %}
+<div class="space-y-6">
+    <!-- Add Category Button -->
+    <button onclick="openNewCategory()" class="w-full bg-[#c36322] text-white py-3 rounded-lg hover:bg-[#a8521f] transition-colors font-medium mb-4">
+        <i class="fas fa-plus mr-2"></i>Nieuwe Categorie Toevoegen
+    </button>
+
+    <!-- Categories List -->
+    <div id="categories-list" class="space-y-2" data-url="/api/categories">
+        {% for category in categories %}
+        <div class="category-row bg-white rounded-lg p-4 shadow-sm draggable-item" data-id="{{ category.id }}" data-order="{{ category.order }}">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-grip-vertical text-gray-400 cursor-grab"></i>
+                <div class="flex-1">
+                    <h4 class="font-medium text-gray-800">{{ category.name }}</h4>
+                    <p class="text-sm text-gray-500">Volgorde: {{ category.order }}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="editCategory({{ category|tojson }})" class="text-[#c36322] hover:text-[#a8521f] transition-colors">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="confirmDeleteCategory({{ category.id }})" class="text-red-500 hover:text-red-600 transition-colors">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not categories %}
+    <div class="text-center py-12">
+        <i class="fas fa-list text-6xl text-gray-300 mb-4"></i>
+        <p class="text-gray-500 text-lg">Geen categorieën gevonden</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- New/Edit Category Modal -->
+<div id="category-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="category-modal-title" class="text-xl font-bold text-gray-800">Nieuwe Categorie</h3>
+            <button onclick="closeCategoryModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <input type="hidden" id="edit-category-id">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categorienaam *</label>
+                <input type="text" id="edit-category-name" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c36322] focus:border-transparent outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Volgorde</label>
+                <input type="number" id="edit-category-order" min="0" value="0" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c36322] focus:border-transparent outline-none">
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end space-x-3">
+            <button onclick="closeCategoryModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                Annuleren
+            </button>
+            <button onclick="saveCategory()" class="px-6 py-2 bg-[#c36322] text-white rounded-lg hover:bg-[#a8521f] transition-colors font-medium">
+                Opslaan
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let editingCategory = null;
+
+function openNewCategory() {
+    document.getElementById('category-modal-title').textContent = 'Nieuwe Categorie';
+    document.getElementById('edit-category-id').value = '';
+    document.getElementById('edit-category-name').value = '';
+    document.getElementById('edit-category-order').value = 0;
+    document.getElementById('category-modal').classList.remove('hidden');
+    editingCategory = null;
+}
+
+function editCategory(category) {
+    document.getElementById('category-modal-title').textContent = 'Categorie Bewerken';
+    document.getElementById('edit-category-id').value = category.id;
+    document.getElementById('edit-category-name').value = category.name;
+    document.getElementById('edit-category-order').value = category.order;
+    document.getElementById('category-modal').classList.remove('hidden');
+    editingCategory = category;
+}
+
+function closeCategoryModal() {
+    document.getElementById('category-modal').classList.add('hidden');
+    editingCategory = null;
+}
+
+async function saveCategory() {
+    const id = document.getElementById('edit-category-id').value;
+    const name = document.getElementById('edit-category-name').value.trim();
+    const order = parseInt(document.getElementById('edit-category-order').value);
+    
+    if (!name) {
+        alert('Voer een categorienaam in');
+        return;
+    }
+    
+    try {
+        let url, method;
+        if (editingCategory) {
+            url = `/api/categories/${id}`;
+            method = 'PUT';
+        } else {
+            url = '/api/categories';
+            method = 'POST';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: name,
+                order: order
+            })
+        });
+        
+        if (!response.ok) throw new Error('Failed to save category');
+        
+        closeCategoryModal();
+        location.reload();
+    } catch (error) {
+        console.error('Error saving category:', error);
+        alert('Fout bij opslaan categorie');
+    }
+}
+
+async function confirmDeleteCategory(categoryId) {
+    if (!confirm('Weet u zeker dat u deze categorie wilt verwijderen? Items in deze categorie zullen "Overig" worden.')) return;
+    
+    try {
+        const response = await fetch(`/api/categories/${categoryId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete category');
+        
+        location.reload();
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        alert('Fout bij verwijderen categorie');
+    }
+}
+
+// Drag and drop functionality for categories
+let draggedItem = null;
+
+document.querySelectorAll('.draggable-item').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+        draggedItem = item;
+        e.dataTransfer.effectAllowed = 'move';
+        item.style.opacity = '0.5';
+    });
+    
+    item.addEventListener('dragend', () => {
+        draggedItem.style.opacity = '1';
+        draggedItem = null;
+    });
+    
+    item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+    
+    item.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+    });
+    
+    item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (draggedItem !== item) {
+            // Swap positions
+            const list = document.getElementById('categories-list');
+            const items = Array.from(list.querySelectorAll('.draggable-item'));
+            const draggedIndex = items.indexOf(draggedItem);
+            const targetIndex = items.indexOf(item);
+            
+            if (draggedIndex < targetIndex) {
+                item.parentNode.insertBefore(draggedItem, item.nextSibling);
+            } else {
+                item.parentNode.insertBefore(draggedItem, item);
+            }
+            
+            // Update order values
+            updateCategoryOrders();
+        }
+    });
+});
+
+async function updateCategoryOrders() {
+    const items = document.querySelectorAll('#categories-list .draggable-item');
+    const updates = [];
+    
+    items.forEach((item, index) => {
+        const categoryId = item.dataset.id;
+        updates.push({
+            id: categoryId,
+            order: index + 1
+        });
+    });
+    
+    // Send updates to backend
+    for (const update of updates) {
+        try {
+            await fetch(`/api/categories/${update.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: document.querySelector(`.draggable-item[data-id="${update.id}"] h4`).textContent,
+                    order: update.order
+                })
+            });
+        } catch (error) {
+            console.error('Error updating category order:', error);
+        }
+    }
+}
+</script>
+{% endblock %}

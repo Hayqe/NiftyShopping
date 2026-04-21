@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-[hsl(30,10%,12%)] text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <button onclick="window.location.href='/'" class="text-white hover:text-[#c36322] transition-colors">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">Instellingen</h1>
+            <div class="w-10"></div>
+        </div>
+    </header>
+
+    <!-- Settings Navigation -->
+    <nav class="bg-white border-b border-gray-200 p-4">
+        <div class="container mx-auto">
+            <div class="flex space-x-8 overflow-x-auto pb-2 -mb-2 -mx-4 px-4">
+                <a href="/settings" class="settings-tab active flex items-center space-x-2 text-[#c36322] pb-2 border-b-2 border-[#c36322] whitespace-nowrap">
+                    <i class="fas fa-cog"></i>
+                    <span>Algemeen</span>
+                </a>
+                <a href="/settings/items" class="settings-tab flex items-center space-x-2 text-gray-500 hover:text-gray-700 pb-2 whitespace-nowrap">
+                    <i class="fas fa-box"></i>
+                    <span>Items</span>
+                </a>
+                <a href="/settings/categories" class="settings-tab flex items-center space-x-2 text-gray-500 hover:text-gray-700 pb-2 whitespace-nowrap">
+                    <i class="fas fa-list"></i>
+                    <span>Categorieën</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Settings Content -->
+    <main class="flex-1 container mx-auto p-4">
+        {% block settings_content %}{% endblock %}
+    </main>
+</div>
+
+<script>
+// Settings tab switching
+document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.settings-tab').forEach(t => {
+            t.classList.remove('active', 'text-[#c36322]', 'border-[#c36322]');
+            t.classList.add('text-gray-500');
+        });
+        e.target.classList.add('active', 'text-[#c36322]', 'border-[#c36322]');
+        e.target.classList.remove('text-gray-500');
+    });
+});
+</script>
+{% endblock %}
