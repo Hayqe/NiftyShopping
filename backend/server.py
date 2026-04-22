@@ -66,7 +66,12 @@ async def read_root(request: Request):
     return await render_template("index.html", request=request, active_items=[], complete_items=[])
 
 @app.get("/settings", response_class=HTMLResponse)
-async def settings(request: Request):
+async def settings_redirect(request: Request):
+    # Redirect /settings to /settings/items as default
+    return Response(status_code=302, headers={"Location": "/settings/items"})
+
+@app.get("/settings/advanced", response_class=HTMLResponse)
+async def settings_advanced(request: Request):
     return await render_template("settings_general.html", request=request)
 
 @app.get("/settings/items", response_class=HTMLResponse)

@@ -109,10 +109,10 @@ async function saveCategory() {
     try {
         let url, method;
         if (editingCategory) {
-            url = `/api/categories/${id}`;
+            url = `/api/categories/${id}/`;
             method = 'PUT';
         } else {
-            url = '/api/categories';
+            url = '/api/categories/';
             method = 'POST';
         }
         
@@ -141,7 +141,7 @@ async function confirmDeleteCategory(categoryId) {
     if (!confirm('Weet u zeker dat u deze categorie wilt verwijderen? Items in deze categorie zullen "Overig" worden.')) return;
     
     try {
-        const response = await fetch(`/api/categories/${categoryId}`, {
+        const response = await fetch(`/api/categories/${categoryId}/`, {
             method: 'DELETE'
         });
         
@@ -214,7 +214,7 @@ async function updateCategoryOrders() {
     // Send updates to backend
     for (const update of updates) {
         try {
-            await fetch(`/api/categories/${update.id}`, {
+            await fetch(`/api/categories/${update.id}/`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'

@@ -91,7 +91,7 @@ def search_items(q: str = Query(..., min_length=1)):
             SELECT i.*, c.name as category_name 
             FROM items i 
             LEFT JOIN categories c ON i.category_id = c.id 
-            WHERE i.item_name LIKE ? AND i.visible = 1
+            WHERE i.item_name LIKE ?
             ORDER BY i.item_name
             LIMIT 10
         """, (search_pattern,))
@@ -142,9 +142,9 @@ def create_item(item: ItemCreate):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Check if item already exists with visible=1
+        # Check if item already exists (regardless of visible status)
         cursor.execute(
-            "SELECT id FROM items WHERE item_name = ? AND visible = 1",
+            "SELECT id FROM items WHERE item_name = ?",
             (item.item_name,)
         )
         existing = cursor.fetchone()
@@ -223,7 +223,7 @@ def reactivate_item(item_id: int):
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE items SET listed = 1, change_date = ? WHERE id = ?",
+            "UPDATE items SET listed = 1, visible = 1, change_date = ? WHERE id = ?",
             (today, item_id)
         )
         conn.commit()

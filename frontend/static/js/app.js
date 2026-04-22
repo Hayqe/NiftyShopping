@@ -4,26 +4,31 @@ const API_BASE = window.location.origin + '/api';
 let categories = [];
 let currentList = 'active';
 
-// DOM Elements
-const searchInput = document.getElementById('search-input');
-const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
-const autocompleteResults = document.getElementById('autocomplete-results');
-const newItemPopup = document.getElementById('new-item-popup');
-const newItemName = document.getElementById('new-item-name');
-const newItemCategory = document.getElementById('new-item-category');
-const newItemQuantity = document.getElementById('new-item-quantity');
-const listToggle = document.getElementById('list-toggle');
-const activeList = document.getElementById('active-list');
-const completeList = document.getElementById('complete-list');
-const emptyState = document.getElementById('empty-state');
-
 // Touch tracking for swipe
 let touchStartX = 0;
 let touchStartY = 0;
 let currentSwipedCard = null;
 
+// DOM Elements (will be set on DOM load)
+let searchInput, autocompleteDropdown, autocompleteResults;
+let newItemPopup, newItemName, newItemCategory, newItemQuantity;
+let listToggle, activeList, completeList, emptyState;
+
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize DOM elements
+    searchInput = document.getElementById('search-input');
+    autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+    autocompleteResults = document.getElementById('autocomplete-results');
+    newItemPopup = document.getElementById('new-item-popup');
+    newItemName = document.getElementById('new-item-name');
+    newItemCategory = document.getElementById('new-item-category');
+    newItemQuantity = document.getElementById('new-item-quantity');
+    listToggle = document.getElementById('list-toggle');
+    activeList = document.getElementById('active-list');
+    completeList = document.getElementById('complete-list');
+    emptyState = document.getElementById('empty-state');
+    
     loadCategories();
     setupEventListeners();
     renderItems();
@@ -35,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load categories from API
 async function loadCategories() {
     try {
-        const response = await fetch(`${API_BASE}/categories`);
+        const response = await fetch(`${API_BASE}/categories/`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         categories = await response.json();
         populateCategorySelect();
     } catch (error) {
@@ -79,8 +85,14 @@ function setupEventListeners() {
         }
     });
     
-    // List toggle
-    listToggle.addEventListener('change', toggleList);
+    // List toggle - update visual state
+    listToggle.addEventListener('change', () => {
+        toggleList();
+        updateToggleButtons();
+    });
+    
+    // Initialize toggle buttons
+    updateToggleButtons();
     
     // Touch events for swipe
     document.querySelectorAll('.item-card').forEach(card => {
@@ -103,6 +115,7 @@ function handleSearchInput() {
 async function searchItems(query) {
     try {
         const response = await fetch(`${API_BASE}/items/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const items = await response.json();
         
         if (items.length === 0) {
@@ -138,24 +151,29 @@ function showAutocompleteResults(items) {
         categoryItems.forEach(item => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'autocomplete-item';
+            const itemNameEscaped = item.item_name.replace(/'/g, "&#39;");
             itemDiv.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <div>
+                <div class="flex justify-between items-center autocomplete-item-content">
+                    <div class="flex-1 cursor-pointer" onclick="selectAutocompleteItem(${item.id}, parseInt(this.closest('.autocomplete-item').querySelector('.quantity-value').textContent), '${itemNameEscaped}')">
                         <p class="font-medium text-gray-800">${item.item_name}</p>
                         <p class="text-sm text-gray-500">Huidige hoeveelheid: ${item.quantity}</p>
                     </div>
-                    <div class="quantity-controls">
-                        <button onclick="event.stopPropagation(); decreaseQuantity(${item.id}, ${item.quantity})" class="quantity-btn">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <span class="quantity-value">${item.quantity}</span>
-                        <button onclick="event.stopPropagation(); increaseQuantity(${item.id}, ${item.quantity})" class="quantity-btn">
-                            <i class="fas fa-plus"></i>
+                    <div class="flex items-center gap-3">
+                        <div class="quantity-controls">
+                            <button onclick="event.stopPropagation(); decreaseQuantity(${item.id}, this)" class="quantity-btn">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="quantity-value">${item.quantity}</span>
+                            <button onclick="event.stopPropagation(); increaseQuantity(${item.id}, this)" class="quantity-btn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <button onclick="event.stopPropagation(); selectAutocompleteItem(${item.id}, parseInt(this.closest('.autocomplete-item').querySelector('.quantity-value').textContent), '${itemNameEscaped}')" class="confirm-btn" title="Voeg toe">
+                            <i class="fas fa-check"></i>
                         </button>
                     </div>
                 </div>
             `;
-            itemDiv.addEventListener('click', () => selectAutocompleteItem(item.id, item.quantity));
             autocompleteResults.appendChild(itemDiv);
         });
     }
@@ -177,24 +195,42 @@ function showNewItemOption(query) {
     autocompleteDropdown.classList.remove('hidden');
 }
 
+// Reactivate item from complete list
+async function reactivateItem(itemId) {
+    try {
+        const response = await fetch(`${API_BASE}/items/${itemId}/reactivate`, {
+            method: 'PUT'
+        });
+        
+        if (!response.ok) throw new Error('Failed to reactivate item');
+        
+        // Reload items
+        await renderItems();
+        checkEmptyState();
+    } catch (error) {
+        console.error('Error reactivating item:', error);
+    }
+}
+
 // Select item from autocomplete
-function selectAutocompleteItem(itemId, quantity) {
-    addItemToList(itemId, quantity);
+function selectAutocompleteItem(itemId, quantity, itemName) {
+    addItemToList(itemId, quantity, itemName);
     autocompleteDropdown.classList.add('hidden');
     searchInput.value = '';
     searchInput.focus();
 }
 
 // Add item to list via API
-async function addItemToList(itemId, quantity) {
+async function addItemToList(itemId, quantity, itemName) {
     try {
-        const response = await fetch(`${API_BASE}/items`, {
+        const response = await fetch(`${API_BASE}/items/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                id: itemId,
+                item_name: itemName,
+                category_id: null,
                 quantity: quantity
             })
         });
@@ -210,22 +246,21 @@ async function addItemToList(itemId, quantity) {
 }
 
 // Increase quantity in autocomplete
-function increaseQuantity(itemId, currentQuantity) {
+function increaseQuantity(itemId, buttonElement) {
+    event.stopPropagation();
+    const quantitySpan = buttonElement.closest('.autocomplete-item').querySelector('.quantity-value');
+    const currentQuantity = parseInt(quantitySpan.textContent);
     const newQuantity = currentQuantity + 1;
-    updateQuantityInAutocomplete(itemId, newQuantity);
+    quantitySpan.textContent = newQuantity;
 }
 
 // Decrease quantity in autocomplete
-function decreaseQuantity(itemId, currentQuantity) {
+function decreaseQuantity(itemId, buttonElement) {
+    event.stopPropagation();
+    const quantitySpan = buttonElement.closest('.autocomplete-item').querySelector('.quantity-value');
+    const currentQuantity = parseInt(quantitySpan.textContent);
     const newQuantity = Math.max(1, currentQuantity - 1);
-    updateQuantityInAutocomplete(itemId, newQuantity);
-}
-
-// Update quantity display in autocomplete
-function updateQuantityInAutocomplete(itemId, newQuantity) {
-    // This would require re-rendering the autocomplete, but for now we'll just add the item
-    // In a real implementation, we'd update the displayed quantity
-    selectAutocompleteItem(itemId, newQuantity);
+    quantitySpan.textContent = newQuantity;
 }
 
 // Open new item popup
@@ -265,7 +300,7 @@ async function saveNewItem() {
     }
     
     try {
-        const response = await fetch(`${API_BASE}/items`, {
+        const response = await fetch(`${API_BASE}/items/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -290,6 +325,25 @@ async function saveNewItem() {
     }
 }
 
+// Update visual state of toggle buttons
+function updateToggleButtons() {
+    const isComplete = listToggle.checked;
+    const lijstBtn = document.getElementById('toggle-lijst');
+    const compleetBtn = document.getElementById('toggle-compleet');
+    
+    if (isComplete) {
+        lijstBtn.classList.remove('bg-[#c36322]', 'text-white');
+        lijstBtn.classList.add('text-gray-600');
+        compleetBtn.classList.add('bg-[#c36322]', 'text-white');
+        compleetBtn.classList.remove('text-gray-600');
+    } else {
+        lijstBtn.classList.add('bg-[#c36322]', 'text-white');
+        lijstBtn.classList.remove('text-gray-600');
+        compleetBtn.classList.remove('bg-[#c36322]', 'text-white');
+        compleetBtn.classList.add('text-gray-600');
+    }
+}
+
 // Toggle between active and complete list
 function toggleList() {
     currentList = listToggle.checked ? 'complete' : 'active';
@@ -306,10 +360,12 @@ function toggleList() {
 // Render items from API
 async function renderItems() {
     try {
-        const activeResponse = await fetch(`${API_BASE}/items`);
+        const activeResponse = await fetch(`${API_BASE}/items/`);
+        if (!activeResponse.ok) throw new Error(`HTTP ${activeResponse.status}`);
         const activeItems = await activeResponse.json();
         
         const completeResponse = await fetch(`${API_BASE}/items/complete`);
+        if (!completeResponse.ok) throw new Error(`HTTP ${completeResponse.status}`);
         const completeItems = await completeResponse.json();
         
         renderItemList(activeList, activeItems, 'active');
@@ -358,20 +414,36 @@ function renderItemList(container, items, listType) {
         });
     }
     
-    // Setup swipe listeners for new cards
-    document.querySelectorAll('.item-card').forEach(card => {
-        setupSwipeListeners(card);
+    // Setup swipe listeners for new rows
+    document.querySelectorAll('.item-row').forEach(row => {
+        const card = row.querySelector('.item-card');
+        if (card) {
+            setupSwipeListeners(row, card);
+        }
     });
 }
 
 // Create item card element
 function createItemCard(item, listType) {
-    const card = document.createElement('div');
-    card.className = 'item-card' + (listType === 'complete' ? ' complete' : '');
-    card.dataset.id = item.id;
-    card.dataset.categoryOrder = item.category_order || 999;
-    
     const isComplete = listType === 'complete';
+    
+    // Create row wrapper
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.id = item.id;
+    row.dataset.categoryOrder = item.category_order || 999;
+    
+    // Create action left
+    const actionLeft = document.createElement('div');
+    actionLeft.className = 'item-actions-left bg-red-100 text-red-600';
+    actionLeft.innerHTML = `
+        <i class="fas fa-trash text-xl"></i>
+        <span class="ml-2 text-sm">Verwijderen</span>
+    `;
+    
+    // Create card
+    const card = document.createElement('div');
+    card.className = 'item-card' + (isComplete ? ' complete' : '');
     
     card.innerHTML = `
         <div class="item-content">
@@ -379,30 +451,37 @@ function createItemCard(item, listType) {
                 <div class="w-5 h-5 border-2 border-gray-300 rounded ${isComplete ? 'bg-green-500 border-green-500' : ''}">
                     ${isComplete ? '<i class="fas fa-check text-white text-xs flex items-center justify-center w-full h-full"></i>' : ''}
                 </div>
-                <div class="flex-1">
-                    <h4 class="font-medium text-gray-800 ${isComplete ? 'line-through' : ''}">${item.item_name}</h4>
-                    <p class="text-sm text-gray-500">${item.category_name || 'Overig'} • ${item.quantity}</p>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                        <span class="quantity-display text-lg font-bold text-[#c36322] min-w-[3rem] text-right ${isComplete ? 'line-through' : ''}">${item.quantity}</span>
+                        <span class="separator text-gray-400">•</span>
+                        <div class="min-w-0">
+                            <h4 class="font-medium text-gray-800 ${isComplete ? 'line-through' : ''}">${item.item_name}</h4>
+                            <p class="text-xs text-gray-500">${item.category_name || 'Overig'}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        ${isComplete ? `
-            <div class="item-actions-right bg-green-100 text-green-600">
-                <i class="fas fa-undo text-xl"></i>
-                <span class="ml-2 text-sm">Terugzetten</span>
-            </div>
-        ` : `
-            <div class="item-actions-right bg-green-100 text-green-600">
-                <i class="fas fa-check text-xl"></i>
-                <span class="ml-2 text-sm">Compleet</span>
-            </div>
-            <div class="item-actions-left bg-red-100 text-red-600">
-                <i class="fas fa-trash text-xl"></i>
-                <span class="ml-2 text-sm">Verwijderen</span>
-            </div>
-        `}
     `;
+
+    // Add recycle button for complete items (right-aligned on card)
+    if (isComplete) {
+        const recycleBtn = document.createElement('button');
+        recycleBtn.className = 'recycle-btn absolute';
+        recycleBtn.style.right = '0.75rem';
+        recycleBtn.style.top = '50%';
+        recycleBtn.style.transform = 'translateY(-50%)';
+        recycleBtn.innerHTML = '<i class="fas fa-recycle"></i>';
+        recycleBtn.title = 'Terug naar boodschappenlijst';
+        recycleBtn.onclick = (e) => {
+            e.stopPropagation();
+            reactivateItem(item.id);
+        };
+        card.appendChild(recycleBtn);
+    }
     
-    // Add swipe indicators
+    // Add swipe indicators to card
     const indicatorRight = document.createElement('div');
     indicatorRight.className = 'swipe-indicator-right';
     card.appendChild(indicatorRight);
@@ -411,118 +490,195 @@ function createItemCard(item, listType) {
     indicatorLeft.className = 'swipe-indicator-left';
     card.appendChild(indicatorLeft);
     
-    return card;
+    // Create action right
+    const actionRight = document.createElement('div');
+    if (isComplete) {
+        actionRight.className = 'item-actions-right bg-green-100 text-green-600';
+        actionRight.innerHTML = `
+            <i class="fas fa-undo text-xl"></i>
+            <span class="ml-2 text-sm">Terugzetten</span>
+        `;
+    } else {
+        actionRight.className = 'item-actions-right bg-green-100 text-green-600';
+        actionRight.innerHTML = `
+            <i class="fas fa-check text-xl"></i>
+            <span class="ml-2 text-sm">Compleet</span>
+        `;
+    }
+    
+    // Assemble row
+    row.appendChild(actionLeft);
+    row.appendChild(card);
+    row.appendChild(actionRight);
+    
+    return row;
 }
 
-// Setup swipe listeners for a card
-function setupSwipeListeners(card) {
+// Setup swipe listeners for a row - NEW IMPLEMENTATION
+function setupSwipeListeners(row, card) {
     const content = card.querySelector('.item-content');
     const isComplete = card.classList.contains('complete');
+    const cardRect = card.getBoundingClientRect();
+    const cardWidth = cardRect.width;
+    const threshold = cardWidth * 0.3; // 30% of card width to trigger action
+    let startX = 0;
+    let isSwiping = false;
+    
+    // Reset card position
+    function resetCard() {
+        card.style.transform = '';
+        card.classList.remove('swiping', 'swiping-left', 'swiping-right');
+        row.classList.remove('swiping');
+    }
+    
+    function updateSwipe(diffX) {
+        // Limit the translate to card width
+        const translateX = Math.max(-cardWidth, Math.min(cardWidth, diffX));
+        card.style.transform = `translateX(${translateX}px)`;
+        
+        // Add swiping class to row to show actions
+        row.classList.add('swiping');
+        
+        // Show action indicators based on direction:
+        // - Finger right (diffX positive) -> card moves right -> shows RIGHT action (complete/green)
+        // - Finger left (diffX negative) -> card moves left -> shows LEFT action (delete/red)
+        if (diffX > 20 && !isComplete) {
+            // Swiping right: show complete action on RIGHT side
+            row.classList.add('swiping-right');
+            row.classList.remove('swiping-left');
+        } else if (diffX < -20) {
+            // Swiping left: show delete action on LEFT side
+            row.classList.add('swiping-left');
+            row.classList.remove('swiping-right');
+        } else {
+            row.classList.remove('swiping-left', 'swiping-right');
+        }
+    }
     
     // Touch events
-    card.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-        currentSwipedCard = card;
-    }, { passive: true });
-    
-    card.addEventListener('touchmove', (e) => {
-        if (!touchStartX) return;
-        
-        const touchX = e.changedTouches[0].screenX;
-        const diffX = touchStartX - touchX;
-        const diffY = Math.abs(touchStartY - e.changedTouches[0].screenY);
-        
-        // Only horizontal swipes
-        if (diffY > 50) return;
-        
-        // Prevent scrolling when swiping horizontally
-        if (Math.abs(diffX) > 10) {
-            e.preventDefault();
-        }
-        
-        const threshold = 50;
-        
-        if (diffX > threshold && !isComplete) {
-            // Swipe left - show delete action
-            card.classList.add('swipe-left');
-            card.classList.remove('swipe-right');
-        } else if (diffX < -threshold) {
-            // Swipe right - show complete action
-            card.classList.add('swipe-right');
-            card.classList.remove('swipe-left');
-        } else {
-            // Reset
-            card.classList.remove('swipe-left', 'swipe-right');
-        }
+    row.addEventListener('touchstart', (e) => {
+        startX = e.changedTouches[0].clientX;
+        currentSwipedCard = row;
+        isSwiping = true;
+        resetCard();
+        e.preventDefault();
     }, { passive: false });
     
-    card.addEventListener('touchend', (e) => {
-        const touchX = e.changedTouches[0].screenX;
-        const diffX = touchStartX - touchX;
-        const threshold = 100;
+    row.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
         
-        if (diffX > threshold && !isComplete) {
-            // Swipe left completed - delete
-            handleSwipeAction(card, 'delete');
-        } else if (diffX < -threshold) {
-            // Swipe right completed - complete/reactivate
-            handleSwipeAction(card, isComplete ? 'reactivate' : 'complete');
+        const currentX = e.changedTouches[0].clientX;
+        const diffX = currentX - startX; // Positive = finger moved right, Negative = finger moved left
+        const diffY = Math.abs(e.changedTouches[0].clientY - e.changedTouches[0].screenY);
+        
+        // Only horizontal swipes
+        if (diffY > 30) {
+            isSwiping = false;
+            resetCard();
+            return;
         }
         
-        // Reset swipe state
-        card.classList.remove('swipe-left', 'swipe-right');
-        touchStartX = 0;
+        // Prevent scrolling when swiping horizontally
+        e.preventDefault();
+        
+        // Card moves in SAME direction as finger:
+        // - Finger right (diffX positive) -> card moves right -> shows DELETE (left action)
+        // - Finger left (diffX negative) -> card moves left -> shows COMPLETE (right action)
+        updateSwipe(diffX);
+    }, { passive: false });
+    
+    row.addEventListener('touchend', (e) => {
+        if (!isSwiping) {
+            resetCard();
+            currentSwipedCard = null;
+            return;
+        }
+        
+        const endX = e.changedTouches[0].clientX;
+        const diffX = endX - startX; // Positive = finger moved right
+        
+        // Trigger action if swipe is significant
+        if (diffX > threshold && !isComplete) {
+            // Finger moved right enough -> complete
+            handleSwipeAction(row, card, 'complete');
+            return; // Don't reset - let the action handle it
+        } else if (diffX < -threshold) {
+            // Finger moved left enough -> delete
+            handleSwipeAction(row, card, 'delete');
+            return; // Don't reset - let the action handle it
+        }
+        
+        // If swipe didn't trigger action, animate back
+        card.style.transition = 'transform 0.2s ease-out';
+        resetCard();
+        
+        setTimeout(() => {
+            card.style.transition = '';
+        }, 200);
+        
         currentSwipedCard = null;
+        isSwiping = false;
     });
     
     // Mouse events for desktop
-    let mouseStartX = 0;
-    let isDragging = false;
-    
-    card.addEventListener('mousedown', (e) => {
-        mouseStartX = e.clientX;
-        isDragging = true;
+    row.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        currentSwipedCard = row;
+        isSwiping = true;
+        resetCard();
+        e.preventDefault();
     });
     
     document.addEventListener('mousemove', (e) => {
-        if (!isDragging || !currentSwipedCard) return;
+        if (!isSwiping || currentSwipedCard !== row) return;
         
-        const diffX = mouseStartX - e.clientX;
-        const threshold = 50;
+        const currentX = e.clientX;
+        const diffX = currentX - startX; // Positive = mouse moved right
         
-        if (diffX > threshold && !currentSwipedCard.classList.contains('complete')) {
-            currentSwipedCard.classList.add('swipe-left');
-            currentSwipedCard.classList.remove('swipe-right');
-        } else if (diffX < -threshold) {
-            currentSwipedCard.classList.add('swipe-right');
-            currentSwipedCard.classList.remove('swipe-left');
-        } else {
-            currentSwipedCard.classList.remove('swipe-left', 'swipe-right');
-        }
+        updateSwipe(diffX);
     });
     
     document.addEventListener('mouseup', (e) => {
-        if (!isDragging || !currentSwipedCard) return;
+        if (!isSwiping || currentSwipedCard !== row) return;
         
-        const diffX = mouseStartX - e.clientX;
-        const threshold = 100;
+        const endX = e.clientX;
+        const diffX = endX - startX; // Positive = mouse moved right
         
-        if (diffX > threshold && !currentSwipedCard.classList.contains('complete')) {
-            handleSwipeAction(currentSwipedCard, 'delete');
+        // For mouse: positive diffX = moved right -> complete
+        if (diffX > threshold && !isComplete) {
+            handleSwipeAction(row, card, 'complete');
+            return;
         } else if (diffX < -threshold) {
-            handleSwipeAction(currentSwipedCard, currentSwipedCard.classList.contains('complete') ? 'reactivate' : 'complete');
+            handleSwipeAction(row, card, 'delete');
+            return;
         }
         
-        currentSwipedCard.classList.remove('swipe-left', 'swipe-right');
+        // Animate back
+        card.style.transition = 'transform 0.2s ease-out';
+        resetCard();
+        
+        setTimeout(() => {
+            card.style.transition = '';
+        }, 200);
+        
         currentSwipedCard = null;
-        isDragging = false;
+        isSwiping = false;
     });
 }
 
 // Handle swipe action
-async function handleSwipeAction(card, action) {
-    const itemId = parseInt(card.dataset.id);
+async function handleSwipeAction(row, card, action) {
+    const itemId = parseInt(row.dataset.id);
+    const originalTransform = card.style.transform;
+    
+    // Animate the card in the direction of the swipe
+    if (action === 'complete') {
+        card.style.transition = 'transform 0.2s ease-out';
+        card.style.transform = `translateX(${-window.innerWidth}px)`;
+    } else if (action === 'delete') {
+        card.style.transition = 'transform 0.2s ease-out';
+        card.style.transform = `translateX(${window.innerWidth}px)`;
+    }
     
     try {
         let endpoint = '';
@@ -540,6 +696,15 @@ async function handleSwipeAction(card, action) {
         
         // Reload items
         await renderItems();
+        
+        // Reset card after reload (it will be re-rendered)
+        setTimeout(() => {
+            card.style.transition = '';
+            card.style.transform = '';
+            card.classList.remove('swiping', 'swiping-left', 'swiping-right');
+            row.classList.remove('swiping');
+        }, 100);
+        
         checkEmptyState();
     } catch (error) {
         console.error('Error handling swipe:', error);
