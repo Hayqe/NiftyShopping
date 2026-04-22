@@ -17,17 +17,17 @@
     <nav class="bg-white border-b border-gray-200 p-4">
         <div class="container mx-auto">
             <div class="flex space-x-8 overflow-x-auto pb-2 -mb-2 -mx-4 px-4">
-                <a href="/settings" class="settings-tab active flex items-center space-x-2 text-[#c36322] pb-2 border-b-2 border-[#c36322] whitespace-nowrap">
-                    <i class="fas fa-cog"></i>
-                    <span>Algemeen</span>
-                </a>
-                <a href="/settings/items" class="settings-tab flex items-center space-x-2 text-gray-500 hover:text-gray-700 pb-2 whitespace-nowrap">
+                <a href="/settings/items" class="settings-tab flex items-center space-x-2 text-gray-500 hover:text-gray-700 pb-2 whitespace-nowrap" data-tab="items">
                     <i class="fas fa-box"></i>
                     <span>Items</span>
                 </a>
-                <a href="/settings/categories" class="settings-tab flex items-center space-x-2 text-gray-500 hover:text-gray-700 pb-2 whitespace-nowrap">
+                <a href="/settings/categories" class="settings-tab flex items-center space-x-2 text-gray-500 hover:text-gray-700 pb-2 whitespace-nowrap" data-tab="categories">
                     <i class="fas fa-list"></i>
                     <span>Categorieën</span>
+                </a>
+                <a href="/settings/advanced" class="settings-tab flex items-center space-x-2 text-gray-500 hover:text-gray-700 pb-2 whitespace-nowrap" data-tab="advanced">
+                    <i class="fas fa-cog"></i>
+                    <span>Geavanceerd</span>
                 </a>
             </div>
         </div>
@@ -40,16 +40,44 @@
 </div>
 
 <script>
-// Settings tab switching
+// Settings tab activation based on current URL
+function setActiveTab() {
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.classList.remove('active', 'text-[#c36322]', 'border-b-2', 'border-[#c36322]');
+        tab.classList.add('text-gray-500');
+        
+        const tabHref = tab.getAttribute('href');
+        // Normalize paths for comparison
+        const tabPath = tabHref.endsWith('/') ? tabHref.slice(0, -1) : tabHref;
+        const currentNormalized = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
+        
+        if (tabPath === currentNormalized) {
+            tab.classList.add('active', 'text-[#c36322]', 'border-b-2', 'border-[#c36322]');
+            tab.classList.remove('text-gray-500');
+        }
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', setActiveTab);
+
+// Also handle tab clicks (fallback)
 document.querySelectorAll('.settings-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.settings-tab').forEach(t => {
-            t.classList.remove('active', 'text-[#c36322]', 'border-[#c36322]');
-            t.classList.add('text-gray-500');
-        });
-        e.target.classList.add('active', 'text-[#c36322]', 'border-[#c36322]');
+        // Brief highlight for feedback
+        e.target.classList.add('active', 'text-[#c36322]', 'border-b-2', 'border-[#c36322]');
         e.target.classList.remove('text-gray-500');
+        
+        // Remove from others after short delay to allow navigation
+        setTimeout(() => {
+            document.querySelectorAll('.settings-tab').forEach(t => {
+                if (t !== e.target) {
+                    t.classList.remove('active', 'text-[#c36322]', 'border-b-2', 'border-[#c36322]');
+                    t.classList.add('text-gray-500');
+                }
+            });
+        }, 100);
     });
 });
 </script>

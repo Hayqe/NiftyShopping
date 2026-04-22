@@ -3,7 +3,7 @@
 {% block content %}
 <div class="min-h-screen flex flex-col" id="app">
     <!-- Header -->
-    <header class="bg-[hsl(30,10%,12%)] text-white p-4 shadow-lg">
+    <header class="bg-[#282520] text-white p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-[#c36322] rounded-lg flex items-center justify-center rotate-[5deg]">
@@ -12,14 +12,13 @@
                 <h1 class="text-xl font-bold">NiftyGroceries</h1>
             </div>
             <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm">Boodschappenlijst</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" value="" id="list-toggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#c36322]"></div>
-                    </label>
-                    <span class="text-sm">Compleet</span>
-                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="list-toggle" class="sr-only">
+                    <div class="flex items-center bg-gray-200 rounded-full p-0.5 text-sm font-medium">
+                        <span id="toggle-lijst" class="px-3 py-1 rounded-full bg-[#c36322] text-white transition-colors">lijst</span>
+                        <span id="toggle-compleet" class="px-3 py-1 rounded-full text-gray-600 transition-colors">compleet</span>
+                    </div>
+                </label>
                 <button class="text-white hover:text-[#c36322] transition-colors" onclick="window.location.href='/settings'">
                     <i class="fas fa-cog text-xl"></i>
                 </button>
@@ -97,23 +96,27 @@
             <!-- Active Items List -->
             <div id="active-list" class="item-list">
                 {% for item in active_items %}
-                <div class="item-card" data-id="{{ item.id }}" data-category-order="{{ item.category_order or 999 }}">
-                    <div class="item-content">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-5 h-5 border-2 border-gray-300 rounded"></div>
-                            <div class="flex-1">
-                                <h4 class="font-medium text-gray-800">{{ item.item_name }}</h4>
-                                <p class="text-sm text-gray-500">{{ item.category_name or 'Overig' }} • {{ item.quantity }}</p>
+                <div class="item-row" data-id="{{ item.id }}" data-category-order="{{ item.category_order or 999 }}">
+                    <div class="item-actions-left bg-red-100 text-red-600">
+                        <i class="fas fa-trash text-xl"></i>
+                        <span class="ml-2 text-sm">Verwijderen</span>
+                    </div>
+                    <div class="item-card">
+                        <div class="item-content">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-5 h-5 border-2 border-gray-300 rounded"></div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-800">{{ item.item_name }}</h4>
+                                    <p class="text-sm text-gray-500">{{ item.category_name or 'Overig' }} • {{ item.quantity }}</p>
+                                </div>
                             </div>
                         </div>
+                        <div class="swipe-indicator-right"></div>
+                        <div class="swipe-indicator-left"></div>
                     </div>
                     <div class="item-actions-right bg-green-100 text-green-600">
                         <i class="fas fa-check text-xl"></i>
                         <span class="ml-2 text-sm">Compleet</span>
-                    </div>
-                    <div class="item-actions-left bg-red-100 text-red-600">
-                        <i class="fas fa-trash text-xl"></i>
-                        <span class="ml-2 text-sm">Verwijderen</span>
                     </div>
                 </div>
                 {% endfor %}
@@ -122,17 +125,21 @@
             <!-- Complete Items List (hidden by default) -->
             <div id="complete-list" class="item-list hidden">
                 {% for item in complete_items %}
-                <div class="item-card complete" data-id="{{ item.id }}" data-category-order="{{ item.category_order or 999 }}">
-                    <div class="item-content">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-5 h-5 border-2 border-green-500 rounded bg-green-500 flex items-center justify-center">
-                                <i class="fas fa-check text-white text-xs"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-medium text-gray-800 line-through">{{ item.item_name }}</h4>
-                                <p class="text-sm text-gray-500">{{ item.category_name or 'Overig' }} • {{ item.quantity }}</p>
+                <div class="item-row" data-id="{{ item.id }}" data-category-order="{{ item.category_order or 999 }}">
+                    <div class="item-card complete">
+                        <div class="item-content">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-5 h-5 border-2 border-green-500 rounded bg-green-500 flex items-center justify-center">
+                                    <i class="fas fa-check text-white text-xs"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-800 line-through">{{ item.item_name }}</h4>
+                                    <p class="text-sm text-gray-500">{{ item.category_name or 'Overig' }} • {{ item.quantity }}</p>
+                                </div>
                             </div>
                         </div>
+                        <div class="swipe-indicator-right"></div>
+                        <div class="swipe-indicator-left"></div>
                     </div>
                     <div class="item-actions-right bg-green-100 text-green-600">
                         <i class="fas fa-undo text-xl"></i>

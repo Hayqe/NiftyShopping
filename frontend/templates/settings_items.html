@@ -118,10 +118,10 @@ async function saveItem() {
     try {
         let url, method;
         if (editingItem) {
-            url = `/api/items/${id}`;
+            url = `/api/items/${id}/`;
             method = 'PUT';
         } else {
-            url = '/api/items';
+            url = '/api/items/';
             method = 'POST';
         }
         
@@ -151,7 +151,7 @@ async function confirmDeleteItem(itemId) {
     if (!confirm('Weet u zeker dat u dit item wilt verwijderen?')) return;
     
     try {
-        const response = await fetch(`/api/items/${itemId}`, {
+        const response = await fetch(`/api/items/${itemId}/`, {
             method: 'DELETE'
         });
         
