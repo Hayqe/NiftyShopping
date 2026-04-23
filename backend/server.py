@@ -113,9 +113,11 @@ async def settings_categories(request: Request):
 # Mount API routers
 from api.items import app as items_api
 from api.categories import app as categories_api
+from api.database import app as database_api
 
 app.mount("/api/items", items_api)
 app.mount("/api/categories", categories_api)
+app.mount("/api/database", database_api)
 
 if __name__ == "__main__":
     import uvicorn

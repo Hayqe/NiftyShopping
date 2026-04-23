@@ -206,6 +206,33 @@
     background-color: #d97706;
 }
 
+/* Drag and drop styles for categories */
+.draggable-handle {
+    cursor: grab;
+}
+
+.draggable-handle:active {
+    cursor: grabbing;
+}
+
+.category-row.drag-over {
+    background-color: #fef3c7;
+    border: 2px solid #f59e0b;
+}
+
+.placeholder {
+    background-color: rgba(195, 99, 34, 0.1);
+    border: 2px dashed #c36322;
+    min-height: 60px;
+}
+
+.drag-placeholder {
+    background-color: rgba(195, 99, 34, 0.1);
+    border: 2px dashed #c36322;
+    min-height: 60px;
+    border-radius: 0.75rem;
+}
+
 /* Loading state */
 .loading {
     opacity: 0.6;

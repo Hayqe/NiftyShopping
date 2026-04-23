@@ -16,10 +16,10 @@
                 <p class="text-sm text-gray-500">{{ item.category_name or 'Geen categorie' }} • Hoeveelheid: {{ item.quantity }}</p>
             </div>
             <div class="flex items-center space-x-2">
-                <button onclick="editItem({{ item|tojson }})" class="text-[#c36322] hover:text-[#a8521f] transition-colors">
+                <button onclick='editItem({{ item|tojson }})' class="text-[#c36322] hover:text-[#a8521f] transition-colors">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button onclick="confirmDeleteItem({{ item.id }})" class="text-red-500 hover:text-red-600 transition-colors">
+                <button onclick='confirmDeleteItem({{ item.id }})' class="text-red-500 hover:text-red-600 transition-colors">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
