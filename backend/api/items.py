@@ -231,7 +231,7 @@ def reactivate_item(item_id: int):
             raise HTTPException(status_code=404, detail="Item not found")
         return {"message": "Item reactivated"}
 
-@app.put("/{item_id}", response_model=Item)
+@app.put("/{item_id}/", response_model=Item)
 def update_item(item_id: int, item: ItemUpdate):
     """Update an item in settings."""
     with get_db() as conn:
@@ -275,7 +275,7 @@ def update_item(item_id: int, item: ItemUpdate):
             change_date=row["change_date"]
         )
 
-@app.delete("/{item_id}")
+@app.delete("/{item_id}/")
 def permanently_delete_item(item_id: int):
     """Permanently delete an item from settings."""
     with get_db() as conn:

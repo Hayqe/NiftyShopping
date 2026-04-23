@@ -43,7 +43,7 @@ def create_category(category: CategoryCreate):
         category_id = cursor.lastrowid
         return Category(id=category_id, name=category.name, order=category.order)
 
-@app.put("/{category_id}", response_model=Category)
+@app.put("/{category_id}/", response_model=Category)
 def update_category(category_id: int, category: CategoryCreate):
     """Update an existing category."""
     with get_db() as conn:
@@ -57,7 +57,7 @@ def update_category(category_id: int, category: CategoryCreate):
             raise HTTPException(status_code=404, detail="Category not found")
         return Category(id=category_id, name=category.name, order=category.order)
 
-@app.delete("/{category_id}")
+@app.delete("/{category_id}/")
 def delete_category(category_id: int):
     """Delete a category."""
     with get_db() as conn:

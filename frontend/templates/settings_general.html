@@ -5,10 +5,6 @@
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Database</h2>
         <div class="space-y-3">
-            <button onclick="backupDatabase()" class="w-full flex items-center justify-center space-x-2 bg-[#c36322] text-white py-3 rounded-lg hover:bg-[#a8521f] transition-colors">
-                <i class="fas fa-save"></i>
-                <span>Database Back-up</span>
-            </button>
             <button onclick="resetDatabase()" class="w-full flex items-center justify-center space-x-2 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>Database Resetten</span>
@@ -21,16 +17,23 @@
 </div>
 
 <script>
-async function backupDatabase() {
-    if (!confirm('Wilt u de database back-uppen?')) return;
-    // This would be implemented with backend API
-    alert('Database back-up functionaliteit nog niet geïmplementeerd');
-}
-
 async function resetDatabase() {
     if (!confirm('WAARSCHUWING: Dit verwijdert ALLE data! Wilt u doorgaan?')) return;
-    // This would be implemented with backend API
-    alert('Database reset functionaliteit nog niet geïmplementeerd');
+    if (!confirm('Echt waar?')) return;
+    
+    try {
+        const response = await fetch('/api/database/reset/', {
+            method: 'POST'
+        });
+        
+        if (!response.ok) throw new Error('Failed to reset database');
+        
+        alert('Database is gereset. Alle tabellen zijn leeggemaakt.');
+        location.reload();
+    } catch (error) {
+        console.error('Error resetting database:', error);
+        alert('Fout bij resetten database');
+    }
 }
 </script>
 {% endblock %}
