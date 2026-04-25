@@ -5,8 +5,6 @@ let categories = [];
 let currentList = 'active';
 
 // Touch tracking for swipe
-let touchStartX = 0;
-let touchStartY = 0;
 let currentSwipedCard = null;
 
 // DOM Elements (will be set on DOM load)
@@ -95,8 +93,11 @@ function setupEventListeners() {
     updateToggleButtons();
     
     // Touch events for swipe
-    document.querySelectorAll('.item-card').forEach(card => {
-        setupSwipeListeners(card);
+    document.querySelectorAll('.item-row').forEach(row => {
+        const card = row.querySelector('.item-card');
+        if (card) {
+            setupSwipeListeners(row, card);
+        }
     });
 }
 
@@ -518,10 +519,12 @@ function createItemCard(item, listType) {
 function setupSwipeListeners(row, card) {
     const content = card.querySelector('.item-content');
     const isComplete = card.classList.contains('complete');
+    // Use offsetWidth as fallback if getBoundingClientRect returns 0
     const cardRect = card.getBoundingClientRect();
-    const cardWidth = cardRect.width;
+    const cardWidth = cardRect.width || card.offsetWidth || 300; // fallback to 300px
     const threshold = cardWidth * 0.3; // 30% of card width to trigger action
     let startX = 0;
+    let startY = 0;
     let isSwiping = false;
     
     // Reset card position
@@ -558,6 +561,7 @@ function setupSwipeListeners(row, card) {
     // Touch events
     row.addEventListener('touchstart', (e) => {
         startX = e.changedTouches[0].clientX;
+        startY = e.changedTouches[0].clientY;
         currentSwipedCard = row;
         isSwiping = true;
         resetCard();
@@ -568,18 +572,22 @@ function setupSwipeListeners(row, card) {
         if (!isSwiping) return;
         
         const currentX = e.changedTouches[0].clientX;
+        const currentY = e.changedTouches[0].clientY;
         const diffX = currentX - startX; // Positive = finger moved right, Negative = finger moved left
-        const diffY = Math.abs(e.changedTouches[0].clientY - e.changedTouches[0].screenY);
+        const diffY = Math.abs(currentY - startY);
         
-        // Only horizontal swipes
-        if (diffY > 30) {
+        // Only horizontal swipes - cancel if vertical movement is too large
+        if (diffY > 50) { // Increased threshold to 50px for better touch tolerance
             isSwiping = false;
             resetCard();
             return;
         }
         
-        // Prevent scrolling when swiping horizontally
-        e.preventDefault();
+        // Only prevent default if we have significant horizontal movement
+        // This prevents blocking scroll on accidental touches
+        if (Math.abs(diffX) > 10) {
+            e.preventDefault();
+        }
         
         // Card moves in SAME direction as finger:
         // - Finger right (diffX positive) -> card moves right -> shows DELETE (left action)
@@ -597,14 +605,28 @@ function setupSwipeListeners(row, card) {
         const endX = e.changedTouches[0].clientX;
         const diffX = endX - startX; // Positive = finger moved right
         
+        // Recalculate threshold based on current card width (may have changed)
+        const currentCardWidth = card.getBoundingClientRect().width || card.offsetWidth || 300;
+        const currentThreshold = currentCardWidth * 0.3;
+        
         // Trigger action if swipe is significant
-        if (diffX > threshold && !isComplete) {
-            // Finger moved right enough -> complete
-            handleSwipeAction(row, card, 'complete');
+        if (diffX > currentThreshold) {
+            // Finger moved right enough
+            if (isComplete) {
+                // For complete items: swipe right -> reactivate (terugzetten)
+                handleSwipeAction(row, card, 'reactivate');
+            } else {
+                // For active items: swipe right -> complete
+                handleSwipeAction(row, card, 'complete');
+            }
+            currentSwipedCard = null;
+            isSwiping = false;
             return; // Don't reset - let the action handle it
-        } else if (diffX < -threshold) {
-            // Finger moved left enough -> delete
+        } else if (diffX < -currentThreshold) {
+            // Finger moved left enough -> delete (works for both active and complete)
             handleSwipeAction(row, card, 'delete');
+            currentSwipedCard = null;
+            isSwiping = false;
             return; // Don't reset - let the action handle it
         }
         
@@ -644,9 +666,13 @@ function setupSwipeListeners(row, card) {
         const endX = e.clientX;
         const diffX = endX - startX; // Positive = mouse moved right
         
-        // For mouse: positive diffX = moved right -> complete
-        if (diffX > threshold && !isComplete) {
-            handleSwipeAction(row, card, 'complete');
+        // For mouse: positive diffX = moved right
+        if (diffX > threshold) {
+            if (isComplete) {
+                handleSwipeAction(row, card, 'reactivate');
+            } else {
+                handleSwipeAction(row, card, 'complete');
+            }
             return;
         } else if (diffX < -threshold) {
             handleSwipeAction(row, card, 'delete');
@@ -678,6 +704,9 @@ async function handleSwipeAction(row, card, action) {
     } else if (action === 'delete') {
         card.style.transition = 'transform 0.2s ease-out';
         card.style.transform = `translateX(${window.innerWidth}px)`;
+    } else if (action === 'reactivate') {
+        card.style.transition = 'transform 0.2s ease-out';
+        card.style.transform = `translateX(${-window.innerWidth}px)`;
     }
     
     try {
